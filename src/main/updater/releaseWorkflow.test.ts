@@ -18,6 +18,8 @@ describe('Stable release automation', () => {
     expect(workflow).toContain('npm run typecheck')
     expect(workflow).toContain('npm run release')
     expect(workflow).toContain('github.ref_name')
+    expect(workflow).toContain('gh release view')
+    expect(workflow).toContain('gh release create')
     expect(packageJson.scripts?.release).toContain('electron-builder --win --publish always')
   })
 })
