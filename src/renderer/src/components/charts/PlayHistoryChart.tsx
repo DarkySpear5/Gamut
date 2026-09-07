@@ -65,6 +65,7 @@ export function PlayHistoryChart({
   const maximumBucketCount = selection.buckets.length
   const visibleBucketCount = Math.min(maximumBucketCount, Math.max(1, requestedBucketCount ?? maximumBucketCount))
   const displayedSelection = zoomable ? visiblePlayHistoryBuckets(selection, visibleBucketCount, selectedKey) : selection
+  const isLine = variant === 'line'
   const bars = displayBars(displayedSelection, timeFormat)
   const yMaxSeconds = hourScale(Math.max(0, ...bars.map((bar) => bar.seconds)))
   const plotWidth = width - PLOT_LEFT - PLOT_RIGHT
@@ -72,7 +73,6 @@ export function PlayHistoryChart({
   const barStep = plotWidth / Math.max(1, bars.length)
   const barWidth = 24
   const labelEvery = Math.max(1, Math.ceil(bars.length / 8))
-  const isLine = variant === 'line'
   const zoomStep = Math.max(1, Math.ceil(maximumBucketCount / 15))
 
   const zoomByWheel = (deltaY: number): void => {
@@ -155,7 +155,8 @@ export function PlayHistoryChart({
           const barHeight = Math.max(2, (bar.seconds / yMaxSeconds) * plotHeight)
           const x = PLOT_LEFT + index * barStep + (barStep - barWidth) / 2
           const y = plotTop + plotHeight - barHeight
-          const showLabel = bar.baseline || index % labelEvery === 0 || index === bars.length - 1
+          const isTodayPredecessor = index === bars.length - 2 && bars[bars.length - 1]?.label === 'Today'
+          const showLabel = !isTodayPredecessor && (bar.baseline || index % labelEvery === 0 || index === bars.length - 1)
           return (
             <g key={bar.key}>
               {!isLine && (
@@ -183,23 +184,14 @@ export function PlayHistoryChart({
 }
 
 function displayBars(selection: PlayHistoryBucketSelection, timeFormat: TimeFormat): DisplayBar[] {
-  const baseline: DisplayBar[] = selection.baseline ? [{
-    key: 'baseline',
-    label: 'Today',
-    accessibleLabel: `Today: ${formatSeconds(selection.baseline.seconds, timeFormat)} carried over from before daily tracking`,
-    tooltip: `Today: ${formatSeconds(selection.baseline.seconds, timeFormat)} carried over from before daily tracking`,
-    seconds: selection.baseline.seconds,
-    baseline: true
-  }] : []
-
-  return [...baseline, ...selection.buckets.map((bucket) => ({
+  return selection.buckets.map((bucket) => ({
     key: bucket.key,
     label: bucket.label,
     accessibleLabel: `${bucket.label}: ${formatSeconds(bucket.seconds, timeFormat)}`,
     tooltip: `${bucket.label}: ${formatSeconds(bucket.seconds, timeFormat)}`,
     seconds: bucket.seconds,
     baseline: false
-  }))]
+  }))
 }
 
 function hourScale(seconds: number): number {

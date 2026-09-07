@@ -78,7 +78,7 @@ function dailyBuckets(history: PlayHistory, today: Date, count: number): PlayHis
   const firstDay = addDays(today, 1 - count)
   return Array.from({ length: count }, (_, index) => {
     const day = addDays(firstDay, index)
-    return dayBucket(history, day)
+    return dayBucket(history, day, index === count - 1)
   })
 }
 
@@ -111,17 +111,17 @@ function monthlyBuckets(history: PlayHistory, today: Date): PlayHistoryChartBuck
       label: monthLabel(start),
       start,
       end,
-      seconds: sumDays(history, start, end)
+      seconds: sumDays(history, start, end) + baselineSecondsInRange(history, start, end)
     })
   }
 
   return buckets
 }
 
-function dayBucket(history: PlayHistory, day: Date): PlayHistoryChartBucket {
+function dayBucket(history: PlayHistory, day: Date, isToday = false): PlayHistoryChartBucket {
   return {
     key: dateKey(day),
-    label: shortDateLabel(day),
+    label: isToday ? 'Today' : shortDateLabel(day),
     start: day,
     end: day,
     seconds: dailySeconds(history, dateKey(day))
@@ -135,6 +135,14 @@ function selectBaseline(history: PlayHistory): PlayHistoryChartBaseline | null {
   return { date: baseline.date, seconds: Math.max(0, baseline.seconds), tooltip: EARLIER_PLAYTIME_TOOLTIP }
 }
 
+function baselineSecondsInRange(history: PlayHistory, start: Date, end: Date): number {
+  const baseline = history.baseline
+  if (!baseline || !isPlayHistoryDate(baseline.date) || !Number.isFinite(baseline.seconds)) return 0
+
+  const startKey = dateKey(start)
+  const endKey = dateKey(end)
+  return baseline.date >= startKey && baseline.date <= endKey ? Math.max(0, baseline.seconds) : 0
+}
 function sumDays(history: PlayHistory, start: Date, end: Date): number {
   let seconds = 0
   for (let day = start; day <= end; day = addDays(day, 1)) seconds += dailySeconds(history, dateKey(day))

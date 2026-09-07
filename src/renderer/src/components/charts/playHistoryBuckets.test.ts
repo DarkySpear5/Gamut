@@ -31,7 +31,7 @@ describe('selectPlayHistoryBuckets', () => {
     expect(result.baseline).toBeNull()
   })
 
-  it('keeps baseline-only history out of daily totals with its exact tooltip copy', () => {
+  it('places pre-tracking playtime in its first known all-time month', () => {
     const result = selectPlayHistoryBuckets(
       history({}, { date: '2024-01-15', seconds: 5_400 }),
       'allTime',
@@ -39,7 +39,7 @@ describe('selectPlayHistoryBuckets', () => {
     )
 
     expect(result.buckets.map((bucket) => [bucket.key, bucket.seconds])).toEqual([
-      ['2024-01', 0],
+      ['2024-01', 5_400],
       ['2024-02', 0],
       ['2024-03', 0]
     ])
@@ -126,5 +126,20 @@ describe('visiblePlayHistoryBuckets', () => {
 
     expect(result.buckets.map((bucket) => bucket.key)).toEqual(['2026-09-03', '2026-09-04', '2026-09-05'])
     expect(result.baseline).toEqual(selection.baseline)
+  })
+})
+describe('daily overview labels', () => {
+  it('places Today after the preceding calendar days', () => {
+    const result = selectPlayHistoryBuckets(history(), 'sevenDays', localDate(2026, 8, 5))
+
+    expect(result.buckets.map((bucket) => bucket.label)).toEqual([
+      '08/30',
+      '08/31',
+      '09/01',
+      '09/02',
+      '09/03',
+      '09/04',
+      'Today'
+    ])
   })
 })
